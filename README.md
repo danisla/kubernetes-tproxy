@@ -62,7 +62,7 @@ helm init
 Install the chart:
 
 ```
-helm install -n tproxy .
+helm install -n tproxy mitmproxy
 ```
 
 ### Deploy sample apps
