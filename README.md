@@ -11,6 +11,7 @@ Technology used:
 - [Google Container Engine](https://cloud.google.com/container-engine/)
 - [Kubernetes Initializers](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers)
 - [mitmproxy](https://mitmproxy.org/)
+- [Kubernetes Helm](https://github.com/kubernetes/helm)
 
 Special thanks to the [Kubernetes Initializer Tutorial](https://github.com/kelseyhightower/kubernetes-initializer-tutorial) by Kelsey Hightower for the Go example.
 
@@ -52,9 +53,13 @@ Gen certs:
 docker run -it --rm -v ${PWD}/mitmproxy/certs/:/home/mitmproxy/.mitmproxy mitmproxy/mitmproxy
 ```
 
+Initialize helm:
+
 ```
 helm init
 ```
+
+Install the chart:
 
 ```
 helm install -n tproxy .
