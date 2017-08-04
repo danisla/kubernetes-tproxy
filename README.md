@@ -30,7 +30,7 @@ gcloud container clusters create dev --machine-type n1-standard-4 --num-nodes 3 
 
 ### Build the container images
 
-Use Container Builder to build the container images. This will place the images in your current project.
+Use [Container Builder](https://cloud.google.com/container-builder/docs/) to build the container images. This will place the images in your current project.
 
 ```
 cd tproxy-initializer && ./build-container && cd -
