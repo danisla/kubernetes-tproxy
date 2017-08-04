@@ -1,0 +1,126 @@
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: {{ template "fullname" . }}
+  labels:
+    app: {{ template "fullname" . }}
+    component: mitmproxy
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "fullname" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "fullname" . }}
+    spec:
+      hostNetwork: true
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: tproxy-service
+          image: {{ .Values.images.tproxy_service }}
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          ports:
+            - containerPort: 9000
+              hostPort: 9000
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9000
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 9000
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+        
+        - name: mitmproxy
+          image: {{ .Values.images.mitmproxy }}
+          tty: true
+          securityContext:
+            runAsUser: 100
+          ports:
+            - containerPort: 1080
+              hostPort: 1080
+              protocol: TCP
+          command:
+            - mitmdump
+            - '-p'
+            - '1080'
+            - '--insecure'
+            - '--stream'
+            - '4096'
+            - '-s'
+            - /opt/mitmproxy-scripts/mitm-script.py
+          volumeMounts:
+            - name: mitmproxy-certs
+              mountPath: /home/mitmproxy/.mitmproxy
+            - name: app-data
+              mountPath: /opt/mitmproxy-scripts/
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+
+        - name: mitmproxy-tproxy
+          image: mitmproxy/mitmproxy
+          tty: true
+          securityContext:
+            runAsUser: 100
+          ports:
+            - containerPort: 8080
+              hostPort: 8080
+              protocol: TCP
+          command:
+            - mitmdump
+            - '-T'
+            - '--host'
+            - '--insecure'
+            - '--stream'
+            - '4096'
+            - '-s'
+            - /opt/mitmproxy-scripts/mitm-script.py
+          volumeMounts:
+            - name: mitmproxy-certs
+              mountPath: /home/mitmproxy/.mitmproxy
+            - name: app-data
+              mountPath: /opt/mitmproxy-scripts/
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+      
+      volumes:
+        - name: mitmproxy-certs
+          secret:
+            secretName: {{ template "fullname" . }}-certs
+        
+        - name: app-data
+          configMap:
+            name: {{ template "fullname" . }}-config
+            items:
+              - key: mitm-script.py
+                path: mitm-script.py
+  
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate

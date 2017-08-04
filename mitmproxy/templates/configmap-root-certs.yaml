@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: root-certs
+data:
+  root-certs.crt: |-
+    {{ range .Files.Lines "root-certs/root-certs.crt" }}
+    {{ . }}{{ end }}{{ range .Files.Lines "certs/mitmproxy-ca-cert.cer" }}
+    {{ . }}{{ end }}

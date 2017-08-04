@@ -1,0 +1,8 @@
+scripts:
+  gcs_bucket_name: solutions-public-assets
+
+images:
+  mitmproxy: mitmproxy/mitmproxy:2.0.2
+  tproxy_initializer: gcr.io/disla-goog-com-csa-ext/tproxy-initializer:0.0.1
+  tproxy_service: gcr.io/disla-goog-com-csa-ext/tproxy-service:0.0.1
+  tproxy_sidecar: gcr.io/disla-goog-com-csa-ext/tproxy-sidecar:0.0.1

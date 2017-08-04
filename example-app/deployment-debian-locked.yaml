@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: debian-app-locked
+  annotations:
+    "initializer.kubernetes.io/tproxy": "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: app
+  template:
+    metadata:
+      labels:
+        run: app
+        variant: debian-locked
+    spec:
+      containers:
+        - name: app
+          image: gcr.io/disla-goog-com-csa-ext/example-app:debian
+          imagePullPolicy: Always

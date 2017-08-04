@@ -1,0 +1,19 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: centos-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: app
+  template:
+    metadata:
+      labels:
+        run: app
+        variant: centos
+    spec:
+      containers:
+        - name: app
+          image: gcr.io/disla-goog-com-csa-ext/example-app:centos
+          imagePullPolicy: Always
