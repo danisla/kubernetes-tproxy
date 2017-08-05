@@ -2,9 +2,9 @@
 
 Example of how to deploy a transparent proxy to filter and intercept all http/s traffic out of a pod.
 
-This is done using the [`tproxy-initializer`](./tproxy-initializer) Kubernetes Initializer to inject a sidecar container, configmap and environment variables into a deployment when the annotation `"initializer.kubernetes.io/tproxy": "true"` is present. 
+This is done using the [`tproxy-initializer`](./tproxy-initializer) Kubernetes Initializer to inject a sidecar init container, configmap and environment variables into a deployment when the annotation `"initializer.kubernetes.io/tproxy": "true"` is present. 
 
-The purpose of the [`tproxy-sidecar`](./tproxy-sidecar) container is to create iptables rules in the pod network to block egress traffic out of the pod and to tell the [`tproxy-service`](./tproxy-service) to add a REDIRECT firewall rule on the node network for the pod to the mitmproxy service. When the pod is terminated, the REDIRECT rule is removed by making a similar request to the `tproxy-service`.
+The purpose of the [`tproxy-sidecar`](./tproxy-sidecar) container is to create iptables rules in the pod network to block egress traffic out of the pod. The [`tproxy-podwatch`](./tproxy-podwatch) controller watches for pod changes containing the annotation and automatically add/removes the local firewall REDIRECT rules to apply the transparent proxy to the pod.
 
 Technology used:
 
@@ -36,7 +36,7 @@ Use [Container Builder](https://cloud.google.com/container-builder/docs/) to bui
 ```
 cd tproxy-initializer && ./build-container && cd -
 
-cd tproxy-service && ./build-container && cd -
+cd tproxy-podwatch && ./build-container && cd -
 
 cd tproxy-sidecar && ./build-container && cd -
 
