@@ -8,10 +8,11 @@ The purpose of the [`tproxy-sidecar`](./tproxy-sidecar) container is to create i
 
 Technology used:
 
-- [Google Container Engine](https://cloud.google.com/container-engine/)
 - [Kubernetes Initializers](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers)
+- [Kubernetes Controllers](https://github.com/kubernetes/community/blob/master/contributors/devel/controllers.md)
 - [mitmproxy](https://mitmproxy.org/)
 - [Kubernetes Helm](https://github.com/kubernetes/helm)
+- [Google Container Engine](https://cloud.google.com/container-engine/)
 
 Special thanks to the [Kubernetes Initializer Tutorial](https://github.com/kelseyhightower/kubernetes-initializer-tutorial) by Kelsey Hightower for the Go example.
 
