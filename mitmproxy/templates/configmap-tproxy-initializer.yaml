@@ -7,6 +7,7 @@ data:
     containers:
       - name: tproxy
         image: {{ .Values.images.tproxy_sidecar }}
+        imagePullPolicy: Always
         securityContext:
           privileged: true
         env:

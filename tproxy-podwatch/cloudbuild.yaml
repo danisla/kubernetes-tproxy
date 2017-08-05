@@ -1,0 +1,11 @@
+steps:
+- name: 'gcr.io/cloud-builders/go:alpine'
+  args: ['get', './...']
+  env: ["PROJECT_ROOT=tproxy-podwatch"]
+- name: 'gcr.io/cloud-builders/go:alpine'
+  args: ['install', '.']
+  env: ["PROJECT_ROOT=tproxy-podwatch"]
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/tproxy-podwatch:0.0.1', '.' ]
+images:
+- 'gcr.io/$PROJECT_ID/tproxy-podwatch:0.0.1'

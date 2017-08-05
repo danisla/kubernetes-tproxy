@@ -17,15 +17,11 @@ spec:
       hostNetwork: true
       terminationGracePeriodSeconds: 10
       containers:
-        - name: tproxy-service
-          image: {{ .Values.images.tproxy_service }}
-          imagePullPolicy: Always
+        - name: tproxy-podwatch
+          image: {{ .Values.images.tproxy_podwatch }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
           securityContext:
             privileged: true
-          ports:
-            - containerPort: 9000
-              hostPort: 9000
-              protocol: TCP
           resources:
             limits:
               cpu: 500m
@@ -33,18 +29,22 @@ spec:
             requests:
               cpu: 100m
               memory: 64Mi
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 9000
-            initialDelaySeconds: 5
-            timeoutSeconds: 5
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 9000
-            initialDelaySeconds: 5
-            timeoutSeconds: 1
+
+        - name: tproxy-initializer
+          image: {{ .Values.images.tproxy_initializer }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          args:
+            - "-annotation=initializer.kubernetes.io/tproxy"
+            - "-require-annotation=true"
+            - "-namespace={{ .Release.Namespace }}"
+            - "-configmap={{ template "fullname" . }}-initializer-config"
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
         
         - name: mitmproxy
           image: {{ .Values.images.mitmproxy }}

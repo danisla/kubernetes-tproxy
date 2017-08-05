@@ -169,11 +169,22 @@ func initializeDeployment(deployment *v1beta1.Deployment, c *config, clientset *
 				containersCopy[i].VolumeMounts = append(containersCopy[i].VolumeMounts, c.VolumeMounts...)
 				containersCopy[i].Env = append(containersCopy[i].Env, c.EnvVars...)
 			}
+			initializedDeployment.Spec.Template.Spec.Containers = containersCopy
 
-			// Modify the Deployment's Pod template to include the container
-			// and configuration volume. Then patch the original deployment.
-			initializedDeployment.Spec.Template.Spec.Containers = append(containersCopy, c.Containers...)
+			// Inject init containers
+			initializedDeployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, c.Containers...)
+
+			// Inject the volumes
 			initializedDeployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, c.Volumes...)
+
+			// Copy annotations
+			annotationsCopy := make(map[string]string)
+			for k, v := range initializedDeployment.Spec.Template.GetAnnotations() {
+				annotationsCopy[k] = v
+			}
+			// Inject same annotation from deployment into template spec.
+			annotationsCopy[annotation] = "true"
+			initializedDeployment.Spec.Template.SetAnnotations(annotationsCopy)
 
 			oldData, err := json.Marshal(deployment)
 			if err != nil {
@@ -185,6 +196,7 @@ func initializeDeployment(deployment *v1beta1.Deployment, c *config, clientset *
 				return err
 			}
 
+			// Patch the original deployment.
 			patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, v1beta1.Deployment{})
 			if err != nil {
 				return err
