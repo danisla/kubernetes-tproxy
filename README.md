@@ -27,7 +27,12 @@ Special thanks to the [Kubernetes Initializer Tutorial](https://github.com/kelse
 As of GKE 1.7.2 the initializers feature is alpha and requires an alpha GKE cluster.
 
 ```
-gcloud container clusters create dev --machine-type n1-standard-4 --num-nodes 3 --enable-kubernetes-alpha --cluster-version 1.7.2
+gcloud container clusters create dev \
+  --machine-type n1-standard-4 \
+  --num-nodes 3 \
+  --enable-kubernetes-alpha \
+  --cluster-version 1.7.2 \
+  --no-enable-legacy-authorization
 ```
 
 ### Build the container images
