@@ -4,6 +4,8 @@ Kubernetes controller to watch for annoated pods and add/remove local node firew
 
 Based on the [workqueue controller example source](https://github.com/kubernetes/kubernetes/blob/edce96c5b6bd4cee6ae6c05934e5078b0920d143/staging/src/k8s.io/client-go/examples/workqueue/main.go).
 
+Must be run with `pod.spec.containers.securityContext.privileged: true` and `pod.spec.hostNetwork: true`
+
 ## Development workflow
 
 Code is built and run in-cluster. Use the `kubectl cp` command to get new source into the pod and the `kubectl exec` command to `go run` the controller in the cluster.
