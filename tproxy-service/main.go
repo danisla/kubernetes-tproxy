@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os/exec"
 	"time"
 )
 
@@ -87,17 +86,16 @@ func tproxyHandler(w http.ResponseWriter, r *http.Request) {
 func addTProxy(ip, comment, action string) error {
 
 	// Port 443
-	cmd := exec.Command("iptables", "-t", "nat", action, "PREROUTING", "-s", ip, "-p", "tcp", "--dport", "443", "-j", "REDIRECT", "-m", "comment", "--comment", comment, "--to", "8080")
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
+	// cmd := exec.Command("iptables", "-t", "nat", action, "PREROUTING", "-s", ip, "-p", "tcp", "--dport", "443", "-j", "REDIRECT", "-m", "comment", "--comment", comment, "--to", "8080")
+	// if err := cmd.Run(); err != nil {
+	// 	return err
+	// }
 
 	// Port 80
-	cmd = exec.Command("iptables", "-t", "nat", action, "PREROUTING", "-s", ip, "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "-m", "comment", "--comment", comment, "--to", "8080")
-	if err != nil {
-		return err
-	}
+	// cmd = exec.Command("iptables", "-t", "nat", action, "PREROUTING", "-s", ip, "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "-m", "comment", "--comment", comment, "--to", "8080")
+	// if err := cmd.Run(); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
