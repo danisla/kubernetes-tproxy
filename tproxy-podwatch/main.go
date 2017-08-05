@@ -145,13 +145,23 @@ func (c *Controller) syncFirewall(key string) error {
 		return err
 	}
 
-	// Only process entries that already exist
+	// If the entry doesn't exist then the pod has been deleted, remove any matching firewall rules.
+	// Note that at this point we don't know what node the pod was running on so every node running
+	// this controller will search for and remove matching firewall rules.
 	if !exists {
 		if len(indices) > 0 {
 			log.Printf("Removing tproxy firewall rule for pod %s, chain index %v\n", podName, indices)
+
+			// When removing rules by number, the table is reordered after each action.
+			// Reverse list of indices so that they are removed in reverse order and the numbers match.
+			for i, j := 0, len(indices)-1; i < j; i, j = i+1, j-1 {
+				indices[i], indices[j] = indices[j], indices[i]
+			}
+
 			for i := range indices {
 				if err := removeFirewall(indices[i]); err != nil {
 					log.Printf("Error removing firewall rule number %d for pod %s: %v", indices[i], podName, err)
+					return err
 				}
 			}
 		}
@@ -181,9 +191,13 @@ func (c *Controller) syncFirewall(key string) error {
 
 	if len(indices) == 0 {
 		log.Printf("Adding tproxy firewall rule for pod %s, %s\n", podName, podIP)
+
+		// This comment is applied to the rule and used to find existing rules.
 		comment := fmt.Sprintf("tproxy-%s", podName)
+
 		if err := addFirewall(podIP, comment); err != nil {
 			log.Printf("Error adding firewall rule for pod %s: %v\n", podName, err)
+			return err
 		}
 	} else {
 		if pod.DeletionTimestamp == nil {
@@ -194,9 +208,10 @@ func (c *Controller) syncFirewall(key string) error {
 	return nil
 }
 
-// Look for existing firewall entry.
-func checkFirewall(comment string) ([]int, error) {
+// Look for existing firewall entry given pattern string.
+func checkFirewall(pattern string) ([]int, error) {
 
+	// Using "-w" arg to prevent concurrency issues in iptables.
 	cmd := exec.Command("iptables", "-w", "-t", "nat", "-L", "PREROUTING", "--line-numbers")
 	output := &bytes.Buffer{}
 	cmd.Stdout = output
@@ -204,11 +219,14 @@ func checkFirewall(comment string) ([]int, error) {
 		return nil, err
 	}
 
-	re, err := regexp.Compile(fmt.Sprintf(`([0-9]+).*REDIRECT.*%s.*`, comment))
+	// Capture the table entry number for lines containing the pattern.
+	re, err := regexp.Compile(fmt.Sprintf(`([0-9]+).*REDIRECT.*%s.*`, pattern))
 	if err != nil {
 		log.Printf("Error compiling regexp")
 		return nil, err
 	}
+
+	// Find all matches, create and return list of matching rule numbers.
 	res := re.FindAllStringSubmatch(string(output.Bytes()), -1)
 	if len(res) > 0 {
 		var indices []int
@@ -220,16 +238,14 @@ func checkFirewall(comment string) ([]int, error) {
 			}
 			indices = append(indices, i)
 		}
-		// Reverse list of indices so that they are removed in reverse order.
-		for i, j := 0, len(indices)-1; i < j; i, j = i+1, j-1 {
-			indices[i], indices[j] = indices[j], indices[i]
-		}
 		return indices, nil
 	}
 	return nil, nil
 }
 
 func addFirewall(ip, comment string) error {
+
+	// Using "-w" arg to prevent concurrency issues in iptables.
 
 	// Port 443
 	cmd := exec.Command("iptables", "-w", "-t", "nat", "-A", "PREROUTING", "-s", ip, "-p", "tcp", "--dport", "443", "-j", "REDIRECT", "-m", "comment", "--comment", comment, "--to", "8080")
@@ -248,8 +264,9 @@ func addFirewall(ip, comment string) error {
 
 func removeFirewall(index int) error {
 
-	// Use command like below to delete rule
-	// sudo iptables -t nat -D PREROUTING 1
+	// Using "-w" arg to prevent concurrency issues in iptables.
+
+	// Note that this causes the table to reorder.
 	num := strconv.Itoa(index)
 	cmd := exec.Command("iptables", "-w", "-t", "nat", "-D", "PREROUTING", num)
 	if err := cmd.Run(); err != nil {
