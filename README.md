@@ -18,7 +18,7 @@ Special thanks to the [Kubernetes Initializer Tutorial](https://github.com/kelse
 
 **Figure 1.** *tproxy diagram*
 
-<img src="./diagram.png" width="800px"></img>
+![diagram](./diagram.png)
 
 ## Example
 
@@ -51,7 +51,7 @@ cd example-app/image-debian && ./build-container && cd -
 cd example-app/image-centos && ./build-container && cd -
 ```
 
-### Deploy tproxy helm chart
+### Deploy tproxy Helm chart
 
 Gen certs:
 
@@ -59,10 +59,17 @@ Gen certs:
 docker run -it --rm -v ${PWD}/mitmproxy/certs/:/home/mitmproxy/.mitmproxy mitmproxy/mitmproxy
 ```
 
-Initialize helm:
+Create service account for Helm
 
 ```
-helm init
+kubectl create serviceaccount --namespace kube-system tiller
+kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
+```
+
+Initialize Helm:
+
+```
+helm init --service-account=tiller
 ```
 
 Install the chart:
