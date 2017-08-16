@@ -12,3 +12,5 @@ images:
 tproxy:
   useRBAC: true
   useInitializer: true
+  hostPort: 8080
+  addStandardModeProxy: false

@@ -15,7 +15,7 @@ data:
     def request(flow: http.HTTPFlow) -> None:
         if not RE_BUCKET.match(flow.request.pretty_url):
             flow.response = http.HTTPResponse.make(
-                403,
+                418,
                 b"Access Denied by Administrator",
                 {"Content-Type": "text/html"}
             )

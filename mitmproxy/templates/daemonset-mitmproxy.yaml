@@ -23,6 +23,11 @@ spec:
         - name: tproxy-podwatch
           image: {{ .Values.images.tproxy_registry }}/{{ .Values.images.tproxy_podwatch }}
           imagePullPolicy: {{ .Values.images.pullPolicy }}
+          args:
+            - '-namespace'
+            - '{{ .Release.Namespace }}'
+            - '-hostPort'
+            - '{{ .Values.tproxy.hostPort }}'
           securityContext:
             privileged: true
           resources:
@@ -32,6 +37,7 @@ spec:
             requests:
               cpu: 100m
               memory: 64Mi
+{{- if .Values.tproxy.addStandardModeProxy }}
         - name: mitmproxy
           image: {{ .Values.images.mitmproxy }}
           imagePullPolicy: {{ .Values.images.pullPolicy }}
@@ -63,18 +69,20 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
-
+{{- end }}
         - name: mitmproxy-tproxy
           image: mitmproxy/mitmproxy
           tty: true
           securityContext:
             runAsUser: 100
           ports:
-            - containerPort: 8080
-              hostPort: 8080
+            - containerPort: {{ .Values.tproxy.hostPort }}
+              hostPort: {{ .Values.tproxy.hostPort }}
               protocol: TCP
           command:
             - mitmdump
+            - '-p'
+            - '{{ .Values.tproxy.hostPort }}'
             - '-T'
             - '--host'
             - '--insecure'

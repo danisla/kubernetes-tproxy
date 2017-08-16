@@ -1,19 +1,3 @@
-/*
-Copyright 2017 The Kubernetes Authors.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package main
 
 import (
@@ -42,7 +26,12 @@ import (
 
 // The annotation to look for
 var annotation string
+
+// The IP of the host this is running on.
 var thisIP string
+
+// The port number to redirect traffic to.
+var hostPortString string
 
 type Controller struct {
 	indexer  cache.Indexer
@@ -248,13 +237,13 @@ func addFirewall(ip, comment string) error {
 	// Using "-w" arg to prevent concurrency issues in iptables.
 
 	// Port 443
-	cmd := exec.Command("iptables", "-w", "-t", "nat", "-A", "PREROUTING", "-s", ip, "-p", "tcp", "--dport", "443", "-j", "REDIRECT", "-m", "comment", "--comment", comment, "--to", "8080")
+	cmd := exec.Command("iptables", "-w", "-t", "nat", "-A", "PREROUTING", "-s", ip, "-p", "tcp", "--dport", "443", "-j", "REDIRECT", "-m", "comment", "--comment", comment, "--to", hostPortString)
 	if err := cmd.Run(); err != nil {
 		return err
 	}
 
 	// Port 80
-	cmd = exec.Command("iptables", "-w", "-t", "nat", "-A", "PREROUTING", "-s", ip, "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "-m", "comment", "--comment", comment, "--to", "8080")
+	cmd = exec.Command("iptables", "-w", "-t", "nat", "-A", "PREROUTING", "-s", ip, "-p", "tcp", "--dport", "80", "-j", "REDIRECT", "-m", "comment", "--comment", comment, "--to", hostPortString)
 	if err := cmd.Run(); err != nil {
 		return err
 	}
@@ -277,10 +266,14 @@ func removeFirewall(index int) error {
 
 func main() {
 	var namespace string
+	var hostPort int
 
 	flag.StringVar(&namespace, "namespace", "default", "the namespace to monitor")
 	flag.StringVar(&annotation, "annotation", "initializer.kubernetes.io/tproxy", "the pod annotation to match on")
+	flag.IntVar(&hostPort, "hostPort", 8080, "The host port to redirect http/s traffic to.")
 	flag.Parse()
+
+	hostPortString = strconv.Itoa(hostPort)
 
 	log.Println("Starting the Kubernetes pod watcher...")
 

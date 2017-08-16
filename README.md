@@ -15,21 +15,43 @@ Technology used:
 - [Kubernetes Helm](https://github.com/kubernetes/helm)
 - [Google Container Engine](https://cloud.google.com/container-engine/)
 
-Special thanks to the [Kubernetes Initializer Tutorial](https://github.com/kelseyhightower/kubernetes-initializer-tutorial) by Kelsey Hightower for the Go example.
-
 **Figure 1.** *tproxy diagram*
 
 ![diagram](./diagram.png)
 
 ## Example
 
+### Mitmproxy Script
+
+This example uses the mitmproxy python script shown below to filter traffic to a specific GCS bucket. The script is installed via the [configmap resource](./mitmpoxy/templates/configmap-mitmproxy.yaml) and parameters are passed using Helm values.
+
+```python
+from mitmproxy import http
+import re
+import os
+
+ALLOW_BUCKET_NAME = "{{ .Values.scripts.gcs_bucket_name }}"
+
+RE_BUCKET = re.compile(r'https://storage.googleapis.com/%s/.*' % ALLOW_BUCKET_NAME)
+
+def request(flow: http.HTTPFlow) -> None:
+    if not RE_BUCKET.match(flow.request.pretty_url):
+        flow.response = http.HTTPResponse.make(
+            418,
+            b"Access Denied by Administrator",
+            {"Content-Type": "text/html"}
+        )
+```
+
+Notice that the URL is HTTPS, clients accessing this resource will need to have the [mitmproxy CA cert installed](http://docs.mitmproxy.org/en/stable/certinstall.html) for the connection to be trusted. The `tproxy-initializer` injects this CA into the container filesystem at runtime so it's automatically available and trusted.
+
 ### Create alpha GKE cluster
 
 As of K8S 1.7 the initializers feature is alpha and requires an alpha GKE cluster.
 
-Create cluster with latest Kubernetes version:
+Create cluster with latest Kubernetes version and alpha features enabled:
 
-```
+```sh
 VERSION=$(gcloud container get-server-config --format='get(validMasterVersions[0])')
 
 gcloud container clusters create dev \
@@ -40,53 +62,40 @@ gcloud container clusters create dev \
   --no-enable-legacy-authorization
 ```
 
-### Build the container images
-
-Use [Container Builder](https://cloud.google.com/container-builder/docs/) to build the container images. This will place the images in your current project.
-
-```
-cd tproxy-initializer && ./build-container && cd -
-
-cd tproxy-podwatch && ./build-container && cd -
-
-cd tproxy-sidecar && ./build-container && cd -
-```
-
 ### Deploy tproxy Helm chart
 
-Gen certs:
+First, generate the certificates used by mitmproxy, they will be included in the Helm release.
 
-```
+```sh
 docker run -it --rm -v ${PWD}/mitmproxy/certs/:/home/mitmproxy/.mitmproxy mitmproxy/mitmproxy
 ```
 
-Create service account for Helm
+Create service account for Helm:
 
-```
+```sh
 kubectl create serviceaccount --namespace kube-system tiller
 kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
 ```
 
 Initialize Helm:
 
-```
+```sh
 helm init --service-account=tiller
 ```
 
 Install the chart:
 
-```
-PROJECT_ID=$(gcloud config get-value project)
-
-helm install -n tproxy --set images.tproxy_registry=${PROJECT_ID} mitmproxy
+```sh
+helm install -n tproxy mitmproxy
 ```
 
 ### Deploy sample apps
 
-Run the sample apps to demonstrate using and not using the annotation to trigger the initializer. There are variants for debian and centos to show how the mitmproxy ca certs are mounted per distro.
+Run the sample apps to demonstrate using and not using the annotation to trigger the initializer. There are variants for Debian and CentOS to show how the mitmproxy ca certs are mounted per distro.
 
 ```
-kubectl create -f example-app/
+kubectl create -f example-app/deployment-debian.yaml
+kubectl create -f example-app/deployment-debian-locked.yaml
 ```
 
 Here is the YAML for the deployment with the annotation:
@@ -102,117 +111,104 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      run: app
+      app: debian-app
   template:
     metadata:
       labels:
-        run: app
-        variant: debian-locked
+        app: debian-app
+        variant: locked
     spec:
       containers:
         - name: app
           image: danisla/example-app:debian
-          imagePullPolicy: Always
 ```
 
 ### Test output
 
 Pod without tproxy:
 
-```
-kubectl logs $(kubectl get pods --selector=variant=debian -o=jsonpath={.items..metadata.name}) -c app
+```sh
+kubectl logs $(kubectl get pods --selector=app=debian-app,variant=unlocked -o=jsonpath={.items..metadata.name})
 ```
 
-> Traffic to https endpoints is unrestricted.
+```
+https://www.google.com: 200
+https://storage.googleapis.com/solutions-public-assets/: 200
+PING www.google.com (209.85.200.105): 56 data bytes
+64 bytes from 209.85.200.105: icmp_seq=0 ttl=52 time=0.758 ms
+```
+
+Notice that traffic to https endpoints is unrestricted and returning status code 200. The ping also succeeds.
 
 Pod with tproxy:
 
-```
-kubectl logs $(kubectl get pods --selector=variant=debian-locked -o=jsonpath={.items..metadata.name}) -c app
-```
-
-> All http/s traffic is proxied through mitmproxy, only the route to the google storage bucket is permitted per the mitmproxy python script. All other egress traffic is blocked.
-
-## Example Without Initializer
-
-If you do not want to use the alpha initializer feature, you can still achieve the same sidecar behavior by adding the init container to the pod spec like the example below. You do still need a 1.7.x cluster because the sidecar uses the Downward API to reflect the node host IP into the environment and the [status.hostIP field is new to 1.7](https://github.com/kubernetes/kubernetes/issues/24657).
-
-Make sure to pass the `--set tproxy.useInitializer=false` arg to the `helm install` command to skip installation of the initializer.
-
-```yaml
-apiVersion: extensions/v1beta1
-kind: Deployment
-metadata:
-  name: debian-app-locked
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      run: app
-  template:
-    metadata:
-      annotations:
-        # The podspec annotation is still needed by the podwatch controller.
-        "initializer.kubernetes.io/tproxy": "true"
-      labels:
-        run: app
-        variant: debian-locked
-    spec:
-      initContainers:
-        - name: tproxy
-          image: danisla/tproxy-sidecar:0.0.1
-          imagePullPolicy: IfNotPresent
-          securityContext:
-            privileged: true
-          env:
-            - name: HOST_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.hostIP
-          resources:
-            limits:
-              cpu: 500m
-              memory: 128Mi
-            requests:
-              cpu: 100m
-              memory: 64Mi
-      containers:
-        - name: app
-          image: danisla/example-app:debian
-          imagePullPolicy: Always
-          volumeMounts:
-            - name: ca-certs-debian
-              mountPath: /etc/ssl/certs/
-            - name: ca-certs-debian
-              # Adding the cert to the /extra dir preserves it if update-ca-certificates is run after init.
-              mountPath: /usr/local/share/ca-certificates/extra/
-      volumes:
-        - name: ca-certs-debian
-          configMap:
-              name: root-certs
-              items:
-                - key: root-certs.crt
-                  path: ca-certificates.crt
+```sh
+kubectl logs $(kubectl get pods --selector=app=debian-app,variant=locked -o=jsonpath={.items..metadata.name})
 ```
 
-The above spec also reflects a complete view of the deployment after it is modified by the initializer.
+```
+https://www.google.com: 418
+https://storage.googleapis.com/solutions-public-assets/: 200
+PING www.google.com (209.85.200.147): 56 data bytes
+ping: sending packet: Operation not permitted
+```
 
-## Cleanup
+Notice that all http/s traffic is proxied through mitmproxy, only the route to the google storage bucket is permitted per the mitmproxy python script. All other egress traffic is rejected.
+
+Inspecting the logs from the mitmproxy pod show the intercepted requests and responses. To get the logs, first identify which node the pod is running on, then get logs for the tproxy instance on that node.
+
+```sh
+kubectl logs $(kubectl get pods -o wide | awk '/mitmproxy.*'$(kubectl get pods --selector=app=debian-app,variant=locked -o=jsonpath={.items..spec.nodeName})'/ {print $1}') -c mitmproxy-tproxy
+```
+
+```
+10.12.1.41:37380: clientconnect
+10.12.1.41:37380: GET https://www.google.com/ HTTP/2.0
+               << 418 I'm a teapot 30b
+10.12.1.41:37380: clientdisconnect
+10.12.1.41:36496: clientconnect
+Streaming response from 64.233.191.128
+10.12.1.41:36496: GET https://storage.googleapis.com/solutions-public-assets/adtech/dfp_networkimpressions.py HTTP/2.0
+               << 200  (content missing)
+10.12.1.41:36496: clientdisconnect
+```
+
+### Cleanup
 
 Delete the sample apps:
 
-```
+```sh
 kubectl delete -f exmaple-apps/
 ```
 
 Delete the tproxy helm release:
 
-```
+```sh
 helm delete --purge tproxy
 ```
 
 Delete the GKE cluster:
 
-```
+```sh
 gcloud container clusters delete dev
+```
+
+# Building the Images
+
+Use [Container Builder](https://cloud.google.com/container-builder/docs/) to build the container images. This will place the images in your current project.
+
+```sh
+cd tproxy-initializer && ./build-container && cd -
+
+cd tproxy-podwatch && ./build-container && cd -
+
+cd tproxy-sidecar && ./build-container && cd -
+```
+
+You can use your custom images when installing the chart by setting the `images.tproxy_registry` value.
+
+```sh
+PROJECT_ID=$(gcloud config get-value project)
+
+helm install -n tproxy --set images.tproxy_registry=${PROJECT_ID} mitmproxy
 ```

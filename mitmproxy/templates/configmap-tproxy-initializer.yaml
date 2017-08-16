@@ -13,10 +13,12 @@ data:
         securityContext:
           privileged: true
         env:
+{{- if .Values.tproxy.addStandardModeProxy }}
           - name: HOST_IP
             valueFrom:
               fieldRef:
                 fieldPath: status.hostIP
+{{- end }}
         resources:
           limits:
             cpu: 500m
@@ -46,6 +48,7 @@ data:
         # Adding the cert to the /extra dir preserves it if update-ca-certificates is run after init.
         mountPath: /usr/local/share/ca-certificates/extra/
     envVars:
+{{- if .Values.tproxy.addStandardModeProxy }}
       - name: HOST_IP
         valueFrom:
           fieldRef:
@@ -54,4 +57,5 @@ data:
         value: $(HOST_IP):1080
       - name: https_proxy
         value: $(HOST_IP):1080
+{{- end }}
 {{- end }}
