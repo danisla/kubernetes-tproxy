@@ -16,9 +16,12 @@ spec:
     spec:
       hostNetwork: true
       terminationGracePeriodSeconds: 10
+{{- if .Values.tproxy.useRBAC }}
+      serviceAccountName: tproxy
+{{- end }}
       containers:
         - name: tproxy-podwatch
-          image: {{ .Values.images.tproxy_podwatch }}
+          image: {{ .Values.images.tproxy_registry }}/{{ .Values.images.tproxy_podwatch }}
           imagePullPolicy: {{ .Values.images.pullPolicy }}
           securityContext:
             privileged: true
@@ -29,25 +32,9 @@ spec:
             requests:
               cpu: 100m
               memory: 64Mi
-
-        - name: tproxy-initializer
-          image: {{ .Values.images.tproxy_initializer }}
-          imagePullPolicy: {{ .Values.images.pullPolicy }}
-          args:
-            - "-annotation=initializer.kubernetes.io/tproxy"
-            - "-require-annotation=true"
-            - "-namespace={{ .Release.Namespace }}"
-            - "-configmap={{ template "fullname" . }}-initializer-config"
-          resources:
-            limits:
-              cpu: 500m
-              memory: 128Mi
-            requests:
-              cpu: 100m
-              memory: 64Mi
-        
         - name: mitmproxy
           image: {{ .Values.images.mitmproxy }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
           tty: true
           securityContext:
             runAsUser: 100

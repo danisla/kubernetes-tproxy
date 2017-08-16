@@ -1,0 +1,62 @@
+{{- if .Values.tproxy.useInitializer }}
+{{- if .Values.tproxy.useRBAC }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ template "fullname" . }}-initializer
+  namespace: kube-system
+---
+# Grant the initializer access to watch deployments in all namespaces and access it's configmap.
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: {{ template "fullname" . }}-initializer
+subjects:
+- kind: ServiceAccount
+  name: {{ template "fullname" . }}-initializer
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: {{ template "fullname" . }}-initializer
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: {{ template "fullname" . }}-initializer
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["configmaps"]
+  resourceNames:
+  - {{ template "fullname" . }}-initializer-config
+  verbs: ["get", "list"]
+- apiGroups: ["extensions", "apps"]
+  resources: ["deployments"]
+  verbs: ["get","list", "watch"]
+---
+# Grant initializer access to update deployments in the release namespace.
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: {{ template "fullname" . }}-initializer
+  namespace: {{ .Release.Namespace }}
+subjects:
+- kind: ServiceAccount
+  name: {{ template "fullname" . }}-initializer
+  namespace: kube-system
+roleRef:
+  kind: Role
+  name: {{ template "fullname" . }}-initializer
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: {{ template "fullname" . }}-initializer
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups: ["extensions", "apps"]
+  resources: ["deployments", "replicasets", "pods"]
+  verbs: ["*"]
+{{- end }}
+{{- end }}

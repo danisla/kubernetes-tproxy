@@ -1,13 +1,15 @@
+{{- if .Values.tproxy.useInitializer }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ template "fullname" . }}-initializer-config
+  namespace: kube-system
 data:
   config: |
     containers:
       - name: tproxy
-        image: {{ .Values.images.tproxy_sidecar }}
-        imagePullPolicy: Always
+        image: {{ .Values.images.tproxy_registry }}/{{ .Values.images.tproxy_sidecar }}
+        imagePullPolicy: {{ .Values.images.pullPolicy }}
         securityContext:
           privileged: true
         env:
@@ -52,3 +54,4 @@ data:
         value: $(HOST_IP):1080
       - name: https_proxy
         value: $(HOST_IP):1080
+{{- end }}

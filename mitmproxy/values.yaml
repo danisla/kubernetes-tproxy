@@ -2,8 +2,13 @@ scripts:
   gcs_bucket_name: solutions-public-assets
 
 images:
-  pullPolicy: Always
+  tproxy_registry: docker.io/danisla
+  pullPolicy: IfNotPresent
   mitmproxy: mitmproxy/mitmproxy:2.0.2
-  tproxy_initializer: gcr.io/disla-goog-com-csa-ext/tproxy-initializer:0.0.1
-  tproxy_podwatch: gcr.io/disla-goog-com-csa-ext/tproxy-podwatch:0.0.1
-  tproxy_sidecar: gcr.io/disla-goog-com-csa-ext/tproxy-sidecar:0.0.1
+  tproxy_initializer: tproxy-initializer:0.1.0
+  tproxy_podwatch: tproxy-podwatch:0.1.0
+  tproxy_sidecar: tproxy-sidecar:0.1.0
+
+tproxy:
+  useRBAC: true
+  useInitializer: true

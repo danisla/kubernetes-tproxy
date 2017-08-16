@@ -1,0 +1,39 @@
+{{- if .Values.tproxy.useInitializer }}
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: {{ template "fullname" . }}-initializer
+  namespace: kube-system
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: {{ template "fullname" . }}
+        release: {{ .Release.Name }}
+    spec:
+{{- if .Values.tproxy.useRBAC }}
+      serviceAccountName: {{ template "fullname" . }}-initializer
+{{- end }}
+      containers:
+        - name: tproxy-initializer
+          image: {{ .Values.images.tproxy_registry }}/{{ .Values.images.tproxy_initializer }}
+          imagePullPolicy: {{ .Values.images.pullPolicy }}
+          args:
+            - "-annotation=initializer.kubernetes.io/tproxy"
+            - "-require-annotation=true"
+            - "-namespace=kube-system"
+            - "-configmap={{ template "fullname" . }}-initializer-config"
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+{{- end }}

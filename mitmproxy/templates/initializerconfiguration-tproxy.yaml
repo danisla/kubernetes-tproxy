@@ -1,7 +1,9 @@
+{{- if .Values.tproxy.useInitializer }}
 apiVersion: admissionregistration.k8s.io/v1alpha1
 kind: InitializerConfiguration
 metadata:
   name: {{ template "fullname" . }}
+  namespace: kube-system
 initializers:
   - name: tproxy.initializer.kubernetes.io
     rules:
@@ -11,3 +13,4 @@ initializers:
           - "*"
         resources:
           - deployments
+{{- end }}

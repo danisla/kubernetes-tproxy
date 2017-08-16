@@ -1,0 +1,41 @@
+{{- if .Values.tproxy.useRBAC }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tproxy
+  namespace: {{ .Release.Namespace }}
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: tproxy-role
+  namespace: {{ .Release.Namespace }}
+subjects:
+- kind: ServiceAccount
+  name: tproxy
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: tproxy
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: tproxy
+  namespace: {{ .Release.Namespace }}
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["configmaps"]
+  resourceNames:
+  - {{ template "fullname" . }}-config
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames:
+  - {{ template "fullname" . }}-certs
+  verbs: ["get", "list"]
+{{- end }}
