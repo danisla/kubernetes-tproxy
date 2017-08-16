@@ -10,6 +10,7 @@ Technology used:
 
 - [Kubernetes Initializers](https://kubernetes.io/docs/admin/extensible-admission-controllers/#what-are-initializers)
 - [Kubernetes Controllers](https://github.com/kubernetes/community/blob/master/contributors/devel/controllers.md)
+- [Kubernetes RBAC](https://kubernetes.io/docs/admin/authorization/rbac/)
 - [mitmproxy](https://mitmproxy.org/)
 - [Kubernetes Helm](https://github.com/kubernetes/helm)
 - [Google Container Engine](https://cloud.google.com/container-engine/)
@@ -24,14 +25,18 @@ Special thanks to the [Kubernetes Initializer Tutorial](https://github.com/kelse
 
 ### Create alpha GKE cluster
 
-As of GKE 1.7.2 the initializers feature is alpha and requires an alpha GKE cluster.
+As of K8S 1.7 the initializers feature is alpha and requires an alpha GKE cluster.
+
+Create cluster with latest Kubernetes version:
 
 ```
+VERSION=$(gcloud container get-server-config --format='get(validMasterVersions[0])')
+
 gcloud container clusters create dev \
   --machine-type n1-standard-4 \
   --num-nodes 3 \
   --enable-kubernetes-alpha \
-  --cluster-version 1.7.2 \
+  --cluster-version $VERSION \
   --no-enable-legacy-authorization
 ```
 
@@ -45,10 +50,6 @@ cd tproxy-initializer && ./build-container && cd -
 cd tproxy-podwatch && ./build-container && cd -
 
 cd tproxy-sidecar && ./build-container && cd -
-
-cd example-app/image-debian && ./build-container && cd -
-
-cd example-app/image-centos && ./build-container && cd -
 ```
 
 ### Deploy tproxy Helm chart
@@ -75,7 +76,9 @@ helm init --service-account=tiller
 Install the chart:
 
 ```
-helm install -n tproxy mitmproxy
+PROJECT_ID=$(gcloud config get-value project)
+
+helm install -n tproxy --set images.tproxy_registry=${PROJECT_ID} mitmproxy
 ```
 
 ### Deploy sample apps
@@ -108,7 +111,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: gcr.io/disla-goog-com-csa-ext/example-app:debian
+          image: danisla/example-app:debian
           imagePullPolicy: Always
 ```
 
@@ -130,6 +133,69 @@ kubectl logs $(kubectl get pods --selector=variant=debian-locked -o=jsonpath={.i
 
 > All http/s traffic is proxied through mitmproxy, only the route to the google storage bucket is permitted per the mitmproxy python script. All other egress traffic is blocked.
 
+## Example Without Initializer
+
+If you do not want to use the alpha initializer feature, you can still achieve the same sidecar behavior by adding the init container to the pod spec like the example below. You do still need a 1.7.x cluster because the sidecar uses the Downward API to reflect the node host IP into the environment and the [status.hostIP field is new to 1.7](https://github.com/kubernetes/kubernetes/issues/24657).
+
+Make sure to pass the `--set tproxy.useInitializer=false` arg to the `helm install` command to skip installation of the initializer.
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: debian-app-locked
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: app
+  template:
+    metadata:
+      annotations:
+        # The podspec annotation is still needed by the podwatch controller.
+        "initializer.kubernetes.io/tproxy": "true"
+      labels:
+        run: app
+        variant: debian-locked
+    spec:
+      initContainers:
+        - name: tproxy
+          image: danisla/tproxy-sidecar:0.0.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+      containers:
+        - name: app
+          image: danisla/example-app:debian
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: ca-certs-debian
+              mountPath: /etc/ssl/certs/
+            - name: ca-certs-debian
+              # Adding the cert to the /extra dir preserves it if update-ca-certificates is run after init.
+              mountPath: /usr/local/share/ca-certificates/extra/
+      volumes:
+        - name: ca-certs-debian
+          configMap:
+              name: root-certs
+              items:
+                - key: root-certs.crt
+                  path: ca-certificates.crt
+```
+
+The above spec also reflects a complete view of the deployment after it is modified by the initializer.
 
 ## Cleanup
 
