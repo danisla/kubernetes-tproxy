@@ -16,4 +16,4 @@ spec:
       containers:
         - name: app
           image: danisla/example-app:debian
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent

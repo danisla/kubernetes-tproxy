@@ -8,14 +8,14 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: centos-app-locked
+      app: centos-app
   template:
     metadata:
       labels:
-        app: centos-app-locked
+        app: centos-app
         variant: locked
     spec:
       containers:
         - name: app
           image: danisla/example-app:centos
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent

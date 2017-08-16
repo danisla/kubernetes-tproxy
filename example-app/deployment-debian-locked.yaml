@@ -8,14 +8,14 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: debian-app-locked
+      app: debian-app
   template:
     metadata:
       labels:
-        app: debian-app-locked
+        app: debian-app
         variant: locked
     spec:
       containers:
         - name: app
           image: danisla/example-app:debian
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent

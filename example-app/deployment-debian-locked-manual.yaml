@@ -1,20 +1,20 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: debian-app-locked
+  name: debian-app-locked-manual
 spec:
   replicas: 1
   selector:
     matchLabels:
-      run: app
+      app: debian-app
   template:
     metadata:
       annotations:
         # The podspec annotation is still needed by the podwatch controller.
         "initializer.kubernetes.io/tproxy": "true"
       labels:
-        run: app
-        variant: debian-locked
+        app: debian-app
+        variant: locked
     spec:
       initContainers:
         - name: tproxy
@@ -22,11 +22,6 @@ spec:
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
-          env:
-            - name: HOST_IP
-              valueFrom:
-                fieldRef:
-                  fieldPath: status.hostIP
           resources:
             limits:
               cpu: 500m
