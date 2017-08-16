@@ -6,14 +6,14 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      run: app
+      app: debian-app
   template:
     metadata:
       labels:
-        run: app
-        variant: debian
+        app: debian-app
+        variant: unlocked
     spec:
       containers:
         - name: app
-          image: gcr.io/disla-goog-com-csa-ext/example-app:debian
+          image: danisla/example-app:debian
           imagePullPolicy: Always

@@ -1,0 +1,53 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: debian-app-locked
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: app
+  template:
+    metadata:
+      annotations:
+        # The podspec annotation is still needed by the podwatch controller.
+        "initializer.kubernetes.io/tproxy": "true"
+      labels:
+        run: app
+        variant: debian-locked
+    spec:
+      initContainers:
+        - name: tproxy
+          image: danisla/tproxy-sidecar:0.0.1
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+          env:
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128Mi
+            requests:
+              cpu: 100m
+              memory: 64Mi
+      containers:
+        - name: app
+          image: danisla/example-app:debian
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: ca-certs-debian
+              mountPath: /etc/ssl/certs/
+            - name: ca-certs-debian
+              # Adding the cert to the /extra dir preserves it if update-ca-certificates is run after init.
+              mountPath: /usr/local/share/ca-certificates/extra/
+      volumes:
+        - name: ca-certs-debian
+          configMap:
+              name: root-certs
+              items:
+                - key: root-certs.crt
+                  path: ca-certificates.crt

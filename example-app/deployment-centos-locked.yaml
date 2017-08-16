@@ -8,14 +8,14 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      run: app
+      app: centos-app-locked
   template:
     metadata:
       labels:
-        run: app
-        variant: centos-locked
+        app: centos-app-locked
+        variant: locked
     spec:
       containers:
         - name: app
-          image: gcr.io/disla-goog-com-csa-ext/example-app:centos
+          image: danisla/example-app:centos
           imagePullPolicy: Always
