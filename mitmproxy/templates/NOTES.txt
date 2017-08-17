@@ -1,3 +1,4 @@
+{{- if .Values.tproxy.useInitializer }}
 Add this metadata annotation to your deployment specs to apply the tproxy initializer:
 
 ```yaml
@@ -5,3 +6,51 @@ metadata:
   annotations:
     "initializer.kubernetes.io/tproxy": "true"
 ```
+{{- else }}
+Add the init container spec below to your deployments:
+
+initContainers:
+  - name: tproxy
+    image: {{ .Values.images.tproxy_registry }}/{{ .Values.images.tproxy_sidecar }}
+    imagePullPolicy: {{ .Values.images.pullPolicy }}
+    securityContext:
+      privileged: true
+    env:
+{{- if .Values.tproxy.addStandardModeProxy }}
+      - name: HOST_IP
+        valueFrom:
+          fieldRef:
+            fieldPath: status.hostIP
+{{- end }}
+    resources:
+      limits:
+        cpu: 500m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+
+Add the volumes below to your deployments to use the trusted https tproxy:
+
+volumes:
+  - name: ca-certs-debian
+    configMap:
+        name: {{ template "fullname" . }}-root-certs
+        items:
+          - key: root-certs.crt
+            path: ca-certificates.crt
+
+{{- if .Values.tproxy.addStandardModeProxy }}
+Add the env vars below to your deployments to use the standard mode proxy:
+
+env:
+  - name: HOST_IP
+    valueFrom:
+      fieldRef:
+        fieldPath: status.hostIP
+  - name: http_proxy
+    value: $(HOST_IP):1080
+  - name: https_proxy
+    value: $(HOST_IP):1080
+{{- end }}
+{{- end }}
