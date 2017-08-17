@@ -4,6 +4,11 @@ kind: InitializerConfiguration
 metadata:
   name: {{ template "fullname" . }}
   namespace: kube-system
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 initializers:
   - name: tproxy.initializer.kubernetes.io
     rules:

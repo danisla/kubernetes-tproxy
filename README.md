@@ -163,7 +163,7 @@ Notice that all http/s traffic is proxied through mitmproxy, only the route to t
 Inspecting the logs from the mitmproxy pod show the intercepted requests and responses. To get the logs, first identify which node the pod is running on, then get logs for the tproxy instance on that node.
 
 ```sh
-kubectl logs $(kubectl get pods -o wide | awk '/mitmproxy.*'$(kubectl get pods --selector=app=debian-app,variant=locked -o=jsonpath={.items..spec.nodeName})'/ {print $1}') -c mitmproxy-tproxy
+kubectl logs $(kubectl get pods -o wide | awk '/mitmproxy.*'$(kubectl get pods --selector=app=debian-app,variant=locked -o=jsonpath={.items..spec.nodeName})'/ {print $1}') -c mitmproxy-tproxy-mode
 ```
 
 ```

@@ -3,24 +3,27 @@ kind: DaemonSet
 metadata:
   name: {{ template "fullname" . }}
   labels:
-    app: {{ template "fullname" . }}
-    component: mitmproxy
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 spec:
   selector:
     matchLabels:
-      app: {{ template "fullname" . }}
+      app: {{ template "name" . }}
   template:
     metadata:
       labels:
-        app: {{ template "fullname" . }}
+        app: {{ template "name" . }}
+        release: {{ .Release.Name }}
     spec:
       hostNetwork: true
       terminationGracePeriodSeconds: 10
 {{- if .Values.tproxy.useRBAC }}
-      serviceAccountName: tproxy
+      serviceAccountName: {{ template "fullname" . }}
 {{- end }}
       containers:
-        - name: tproxy-podwatch
+        - name: {{ .Chart.Name }}-podwatch
           image: {{ .Values.images.tproxy_registry }}/{{ .Values.images.tproxy_podwatch }}
           imagePullPolicy: {{ .Values.images.pullPolicy }}
           args:
@@ -38,7 +41,7 @@ spec:
               cpu: 100m
               memory: 64Mi
 {{- if .Values.tproxy.addStandardModeProxy }}
-        - name: mitmproxy
+        - name: {{ .Chart.Name }}-standard-mode
           image: {{ .Values.images.mitmproxy }}
           imagePullPolicy: {{ .Values.images.pullPolicy }}
           tty: true
@@ -63,15 +66,10 @@ spec:
             - name: app-data
               mountPath: /opt/mitmproxy-scripts/
           resources:
-            limits:
-              cpu: 500m
-              memory: 256Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
+{{ toYaml .Values.tproxy.resources | indent 12 }}
 {{- end }}
-        - name: mitmproxy-tproxy
-          image: mitmproxy/mitmproxy
+        - name: {{ .Chart.Name }}-tproxy-mode
+          image: {{ .Values.images.mitmproxy }}
           tty: true
           securityContext:
             runAsUser: 100
@@ -96,13 +94,7 @@ spec:
             - name: app-data
               mountPath: /opt/mitmproxy-scripts/
           resources:
-            limits:
-              cpu: 500m
-              memory: 256Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
-      
+{{ toYaml .Values.tproxy.resources | indent 12 }}
       volumes:
         - name: mitmproxy-certs
           secret:

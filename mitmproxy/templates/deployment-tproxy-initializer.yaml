@@ -3,6 +3,8 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: {{ template "fullname" . }}-initializer
+  annotations:
+    checksum/config: {{ include (print $.Template.BasePath "/configmap-tproxy-initializer.yaml") . | sha256sum }}
   namespace: kube-system
   labels:
     app: {{ template "name" . }}
@@ -14,14 +16,14 @@ spec:
   template:
     metadata:
       labels:
-        app: {{ template "fullname" . }}
+        app: {{ template "name" . }}
         release: {{ .Release.Name }}
     spec:
 {{- if .Values.tproxy.useRBAC }}
       serviceAccountName: {{ template "fullname" . }}-initializer
 {{- end }}
       containers:
-        - name: tproxy-initializer
+        - name: {{ .Chart.Name }}-initializer
           image: {{ .Values.images.tproxy_registry }}/{{ .Values.images.tproxy_initializer }}
           imagePullPolicy: {{ .Values.images.pullPolicy }}
           args:

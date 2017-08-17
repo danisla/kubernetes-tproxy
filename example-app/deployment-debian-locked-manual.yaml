@@ -18,7 +18,7 @@ spec:
     spec:
       initContainers:
         - name: tproxy
-          image: danisla/tproxy-sidecar:0.0.1
+          image: danisla/tproxy-sidecar:0.1.0
           imagePullPolicy: IfNotPresent
           securityContext:
             privileged: true
@@ -42,7 +42,7 @@ spec:
       volumes:
         - name: ca-certs-debian
           configMap:
-              name: root-certs
+              name: tproxy-mitmproxy-root-certs
               items:
                 - key: root-certs.crt
                   path: ca-certificates.crt

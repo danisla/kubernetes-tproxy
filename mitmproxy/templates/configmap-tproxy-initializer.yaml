@@ -4,6 +4,11 @@ kind: ConfigMap
 metadata:
   name: {{ template "fullname" . }}-initializer-config
   namespace: kube-system
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 data:
   config: |
     containers:
@@ -29,13 +34,13 @@ data:
     volumes:
       - name: ca-certs-fedora
         configMap:
-            name: root-certs
+            name: {{ template "fullname" . }}-root-certs
             items:
               - key: root-certs.crt
                 path: ca-bundle.crt
       - name: ca-certs-debian
         configMap:
-            name: root-certs
+            name: {{ template "fullname" . }}-root-certs
             items:
               - key: root-certs.crt
                 path: ca-certificates.crt

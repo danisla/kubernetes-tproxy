@@ -5,12 +5,22 @@ kind: ServiceAccount
 metadata:
   name: {{ template "fullname" . }}-initializer
   namespace: kube-system
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 ---
 # Grant the initializer access to watch deployments in all namespaces and access it's configmap.
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: {{ template "fullname" . }}-initializer
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 subjects:
 - kind: ServiceAccount
   name: {{ template "fullname" . }}-initializer
@@ -24,6 +34,11 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: {{ template "fullname" . }}-initializer
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 rules:
 - apiGroups: [""] # "" indicates the core API group
   resources: ["configmaps"]
@@ -40,6 +55,11 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: {{ template "fullname" . }}-initializer
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 subjects:
 - kind: ServiceAccount
   name: {{ template "fullname" . }}-initializer
@@ -54,6 +74,11 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: {{ template "fullname" . }}-initializer
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
 rules:
 - apiGroups: ["extensions", "apps"]
   resources: ["deployments", "replicasets", "pods"]
