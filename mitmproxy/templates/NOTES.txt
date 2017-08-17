@@ -1,0 +1,7 @@
+Add this metadata annotation to your deployment specs to apply the tproxy initializer:
+
+```yaml
+metadata:
+  annotations:
+    "initializer.kubernetes.io/tproxy": "true"
+```
