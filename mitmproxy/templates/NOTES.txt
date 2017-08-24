@@ -41,7 +41,8 @@ volumes:
             path: ca-certificates.crt
 {{- end }}
 {{- if .Values.tproxy.addStandardModeProxy }}
-Add the env vars below to your deployments to use the standard mode proxy:
+
+Add the env vars below to your deployments to automatically set the proxy values:
 
 env:
   - name: HOST_IP
