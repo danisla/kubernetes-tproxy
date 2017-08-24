@@ -39,7 +39,7 @@ volumes:
         items:
           - key: root-certs.crt
             path: ca-certificates.crt
-
+{{- end }}
 {{- if .Values.tproxy.addStandardModeProxy }}
 Add the env vars below to your deployments to use the standard mode proxy:
 
@@ -52,5 +52,4 @@ env:
     value: $(HOST_IP):1080
   - name: https_proxy
     value: $(HOST_IP):1080
-{{- end }}
 {{- end }}
