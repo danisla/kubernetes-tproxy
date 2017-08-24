@@ -10,8 +10,8 @@ images:
   tproxy_sidecar: tproxy-sidecar:0.1.0
 
 tproxy:
-  useRBAC: true
-  useInitializer: true
+  useRBAC: false
+  useInitializer: false
   hostPort: 8080
   addStandardModeProxy: false
   resources:
