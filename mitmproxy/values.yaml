@@ -14,6 +14,8 @@ tproxy:
   useInitializer: false
   hostPort: 8080
   addStandardModeProxy: false
+  # blockSvcCIDR: 10.11.240.0/20
+  # allowDNS: 10.11.240.10
   resources:
     limits:
       cpu: 500m

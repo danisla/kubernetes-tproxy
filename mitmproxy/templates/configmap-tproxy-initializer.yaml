@@ -18,6 +18,14 @@ data:
         securityContext:
           privileged: true
         env:
+{{- if .Values.tproxy.blockSvcCIDR }}
+          - name: BLOCK_SVC_CIDR
+            value: "{{ .Values.tproxy.blockSvcCIDR }}"
+{{- end }}
+{{- if .Values.tproxy.allowDNS }}
+          - name: ALLOW_DNS
+            value: "{{ .Values.tproxy.allowDNS }}"
+{{- end }}
 {{- if .Values.tproxy.addStandardModeProxy }}
           - name: HOST_IP
             valueFrom:
