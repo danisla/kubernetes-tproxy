@@ -25,10 +25,10 @@ initContainers:
         value: "{{ .Values.tproxy.allowDNS }}"
 {{- end }}
 {{- if .Values.tproxy.addStandardModeProxy }}
-      - name: HOST_IP
+      - name: NODE_NAME
         valueFrom:
           fieldRef:
-            fieldPath: status.hostIP
+            fieldPath: spec.nodeName
 {{- end }}
     resources:
       limits:
@@ -53,12 +53,12 @@ volumes:
 Add the env vars below to your deployments to automatically set the proxy values:
 
 env:
-  - name: HOST_IP
+  - name: NODE_NAME
     valueFrom:
       fieldRef:
-        fieldPath: status.hostIP
+        fieldPath: spec.nodeName
   - name: http_proxy
-    value: $(HOST_IP):1080
+    value: $(NODE_NAME):1080
   - name: https_proxy
-    value: $(HOST_IP):1080
+    value: $(NODE_NAME):1080
 {{- end }}

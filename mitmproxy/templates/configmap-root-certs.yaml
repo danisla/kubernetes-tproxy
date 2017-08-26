@@ -9,6 +9,6 @@ metadata:
     heritage: {{ .Release.Service }}
 data:
   root-certs.crt: |-
-    {{ range .Files.Lines "root-certs/root-certs.crt" }}
+    {{ range .Files.Lines "config/root-certs.crt" }}
     {{ . }}{{ end }}{{ range .Files.Lines "certs/mitmproxy-ca-cert.cer" }}
     {{ . }}{{ end }}

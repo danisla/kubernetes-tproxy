@@ -1,6 +1,3 @@
-scripts:
-  gcs_bucket_name: solutions-public-assets
-
 images:
   tproxy_registry: docker.io/danisla
   pullPolicy: IfNotPresent
