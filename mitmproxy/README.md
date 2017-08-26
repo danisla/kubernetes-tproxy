@@ -64,7 +64,6 @@ The following table lists the configurable parameters for the chart and their de
 
 | Parameter                            | Description                                                              | Default                                    |
 | ------------------------------------ | ------------------------------------------------------------------------ | ------------------------------------------ |
-| `scripts.gcs_bucket_name`            | Value for the mitm-proxy script                                          | `solutions-public-assets`                  |
 | `images.tproxy_registry`             | Container image registry for the `tproxy-` images                        | `docker.io/danisla`                        |
 | `images.pullPolicy`                  | The image pull policy for all images                                     | `IfNotPresent`                             |
 | `images.tproxy_initializer`          | repo and tag for the tproxy-initializer image                            | `tproxy-initializer:0.1.0`                 |
