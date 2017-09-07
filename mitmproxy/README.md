@@ -52,8 +52,7 @@ This will cause the `tproxy-initializer` to do the following:
 
 To change the mitmproxy script do the following:
 
-1. Edit the `./templates/configmap-mitmproxy.yaml` file and paste your script into the data block for the `mitm-script.py`.
-2. Add any parametized values to the `values.yaml` under the `scripts` value map.
+1. Edit the `./config/mitm-script.py` file.
 3. Upgrade the Helm release. `helm upgrade tproxy .`
 
 After about 30 seconds, the new script will be live-updated and in use by mitmproxy. 
