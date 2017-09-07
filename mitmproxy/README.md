@@ -48,15 +48,6 @@ This will cause the `tproxy-initializer` to do the following:
 /etc/ssl/certs/ca-certificates.crt
 ```
 
-### Customizing the mitmproxy script
-
-To change the mitmproxy script do the following:
-
-1. Edit the `./config/mitm-script.py` file.
-3. Upgrade the Helm release. `helm upgrade tproxy .`
-
-After about 30 seconds, the new script will be live-updated and in use by mitmproxy. 
-
 ## Configuration
 
 The following table lists the configurable parameters for the chart and their default values.
@@ -73,3 +64,87 @@ The following table lists the configurable parameters for the chart and their de
 | `tproxy.hostPort`                    | The port claimed on each host node that mitmproxy binds to               | `8080`                                     |
 | `tproxy.addStandardModeProxy`        | Set to `true` to install a second mitmproxy instance on port `1080` that can be used as a normal proxy | `false`      |
 | `tproxy.resources`                   | Resources allocated to the mitmproxy containers                          | `limit=500m,256Mi, request=100m,128Mi`     |
+
+## Customizing the mitmproxy script
+
+To change the mitmproxy script do the following:
+
+1. Edit the `./config/mitm-script.py` file.
+3. Upgrade the Helm release. `helm upgrade tproxy .`
+
+After about 30 seconds, the new script will be live-updated and in use by mitmproxy. 
+
+## Blocking Service Traffic
+
+The firewall rules for blocking egress created by the tproxy sidecar also manage intra-pod traffic but not traffic through services. Service traffic is routed using the kube-proxy and must be explicitly blocked.
+
+Use the `tproxy.blockSvcCIDR` value with the CIDR range of the cluster service network to block all traffic to services from the pod.
+
+Blocking the service network may also block DNS lookups. Use the `tproxy.allowDNS` value to explicitly allow access to the kubedns service.
+
+```
+helm install -n tproxy \
+  --set tproxy.blockSvcCIDR=10.11.240.0/20 \
+  --set tproxy.allowDNS=10.11.240.10 \
+  .
+```
+
+Add the following environment variables to init container spec to apply the firewall rules to the pod:
+
+```
+env:
+  - name: BLOCK_SVC_CIDR
+    value: "10.11.240.0/20"
+  - name: ALLOW_DNS
+    value: "10.11.240.10"
+```
+
+## Multi-mode Mitmproxy
+The firewall REDIRECT rule only captures traffic leaving the pods on ports 80 and 443 for HTTP and HTTPS traffic respectively. If the pod wants to make HTTP requests to services on non-standard ports, like port 8080, then traffic will be rejected.
+
+The solution to handling non-standard ports is to run an additional mitmproxy in standard mode alongside the mitmproxy running in transparent proxy mode. See the mitmproxy docs for details on the modes of operation. This will give the pod workloads the option to explicitly use the mitmproxy. 
+
+To enable the standard mode mitmproxy, set the `tproxy.addStandardModeProxy=true` chart value when installing with Helm.
+
+```
+helm install -n tproxy --set tproxy.addStandardModeProxy=true .
+```
+
+Update the initContainer spec for your deployments to pass the `NODE_NAME` to the sidecar which will allow traffic to host on port 1080 where the standard mode proxy is running:
+
+```
+initContainers:
+  - name: tproxy
+    image: docker.io/danisla/tproxy-sidecar:0.1.0
+    imagePullPolicy: IfNotPresent
+    securityContext:
+      privileged: true
+    env:
+      - name: NODE_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: spec.nodeName
+    resources:
+      limits:
+        cpu: 500m
+        memory: 128Mi
+      requests:
+        cpu: 100m
+        memory: 64Mi
+```
+
+Add the env vars below to your deployments to use the standard mode proxy automatically:
+
+```
+env:
+  - name: NODE_NAME
+    valueFrom:
+      fieldRef:
+        fieldPath: spec.nodeName
+  - name: http_proxy
+    value: $(NODE_NAME):1080
+  - name: https_proxy
+    value: $(NODE_NAME):1080
+```
+
+Note that when running with this configuration, the proxy logs will be split between the `mitmproxy-tproxy-mode` and the `mitmproxy-standard-mode` containers in the daemonset pod. Most tools will automatically use the environment variables for the proxy config so the logs will appear in the `mitmproxy-standard-mode` container, however all other HTTP and HTTPS traffic will show up in the `mitmproxy-tproxy-mode` container.
