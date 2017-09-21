@@ -2,13 +2,14 @@
 apiVersion: admissionregistration.k8s.io/v1alpha1
 kind: InitializerConfiguration
 metadata:
-  name: {{ template "fullname" . }}
+  name: {{ template "tproxy.fullname" . }}
   namespace: kube-system
   labels:
-    app: {{ template "name" . }}
+    app: {{ template "tproxy.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    component: initializer
 initializers:
   - name: tproxy.initializer.kubernetes.io
     rules:

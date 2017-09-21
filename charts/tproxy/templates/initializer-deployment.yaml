@@ -2,25 +2,26 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  name: {{ template "fullname" . }}-initializer
+  name: {{ template "tproxy.fullname" . }}-initializer
   annotations:
-    checksum/config: {{ include (print $.Template.BasePath "/configmap-tproxy-initializer.yaml") . | sha256sum }}
+    checksum/config: {{ include (print $.Template.BasePath "/initializer-configmap.yaml") . | sha256sum }}
   namespace: kube-system
   labels:
-    app: {{ template "name" . }}
+    app: {{ template "tproxy.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    component: initializer
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        app: {{ template "name" . }}
+        app: {{ template "tproxy.name" . }}
         release: {{ .Release.Name }}
     spec:
 {{- if .Values.tproxy.useRBAC }}
-      serviceAccountName: {{ template "fullname" . }}-initializer
+      serviceAccountName: {{ template "tproxy.fullname" . }}-initializer
 {{- end }}
       containers:
         - name: {{ .Chart.Name }}-initializer
@@ -30,7 +31,7 @@ spec:
             - "-annotation=initializer.kubernetes.io/tproxy"
             - "-require-annotation=true"
             - "-namespace=kube-system"
-            - "-configmap={{ template "fullname" . }}-initializer-config"
+            - "-configmap={{ template "tproxy.fullname" . }}-initializer-config"
           resources:
             limits:
               cpu: 500m

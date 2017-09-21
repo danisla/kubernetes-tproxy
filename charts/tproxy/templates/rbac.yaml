@@ -2,48 +2,51 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ template "fullname" . }}
+  name: {{ template "tproxy.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "name" . }}
+    app: {{ template "tproxy.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    component: tproxy
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: {{ template "fullname" . }}
+  name: {{ template "tproxy.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "name" . }}
+    app: {{ template "tproxy.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    component: tproxy
 subjects:
 - kind: ServiceAccount
-  name: {{ template "fullname" . }}
+  name: {{ template "tproxy.fullname" . }}
   namespace: {{ .Release.Namespace }}
 roleRef:
   kind: Role
-  name: {{ template "fullname" . }}
+  name: {{ template "tproxy.fullname" . }}
   apiGroup: rbac.authorization.k8s.io
 ---
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
-  name: {{ template "fullname" . }}
+  name: {{ template "tproxy.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ template "name" . }}
+    app: {{ template "tproxy.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    component: tproxy
 rules:
 - apiGroups: [""] # "" indicates the core API group
   resources: ["configmaps"]
   resourceNames:
-  - {{ template "fullname" . }}-config
+  - {{ template "tproxy.fullname" . }}-config
   verbs: ["get", "list"]
 - apiGroups: [""]
   resources: ["pods"]
@@ -51,6 +54,6 @@ rules:
 - apiGroups: [""]
   resources: ["secrets"]
   resourceNames:
-  - {{ template "fullname" . }}-certs
+  - {{ template "tproxy.fullname" . }}-certs
   verbs: ["get", "list"]
 {{- end }}

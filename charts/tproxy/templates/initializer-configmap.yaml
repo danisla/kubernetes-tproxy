@@ -2,13 +2,14 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ template "fullname" . }}-initializer-config
+  name: {{ template "tproxy.fullname" . }}-initializer
   namespace: kube-system
   labels:
-    app: {{ template "name" . }}
+    app: {{ template "tproxy.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    component: initializer
 data:
   config: |
     containers:
@@ -42,13 +43,13 @@ data:
     volumes:
       - name: ca-certs-fedora
         configMap:
-            name: {{ template "fullname" . }}-root-certs
+            name: {{ template "tproxy.fullname" . }}-root-certs
             items:
               - key: root-certs.crt
                 path: ca-bundle.crt
       - name: ca-certs-debian
         configMap:
-            name: {{ template "fullname" . }}-root-certs
+            name: {{ template "tproxy.fullname" . }}-root-certs
             items:
               - key: root-certs.crt
                 path: ca-certificates.crt

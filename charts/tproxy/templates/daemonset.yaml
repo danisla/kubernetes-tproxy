@@ -1,26 +1,30 @@
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: {{ template "fullname" . }}
+  name: {{ template "tproxy.fullname" . }}
   labels:
-    app: {{ template "name" . }}
+    app: {{ template "tproxy.name" . }}
     chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    component: tproxy
 spec:
   selector:
     matchLabels:
-      app: {{ template "name" . }}
+      app: {{ template "tproxy.name" . }}
+      release: {{ .Release.Name }}
+      component: tproxy
   template:
     metadata:
       labels:
-        app: {{ template "name" . }}
+        app: {{ template "tproxy.name" . }}
         release: {{ .Release.Name }}
+        component: tproxy
     spec:
       hostNetwork: true
       terminationGracePeriodSeconds: 10
 {{- if .Values.tproxy.useRBAC }}
-      serviceAccountName: {{ template "fullname" . }}
+      serviceAccountName: {{ template "tproxy.fullname" . }}
 {{- end }}
       containers:
         - name: {{ .Chart.Name }}-podwatch
@@ -98,11 +102,11 @@ spec:
       volumes:
         - name: mitmproxy-certs
           secret:
-            secretName: {{ template "fullname" . }}-certs
+            secretName: {{ template "tproxy.fullname" . }}-certs
         
         - name: app-data
           configMap:
-            name: {{ template "fullname" . }}-config
+            name: {{ template "tproxy.fullname" . }}
             items:
               - key: mitm-script.py
                 path: mitm-script.py

@@ -1,4 +1,4 @@
-# Mitmproxy Chart
+# Transparent Proxy with Mitmproxy
 
 Mitmproxy is an interactive man-in-the-middle proxy for HTTP and HTTPS with a console interface and Python scripting. 
 

@@ -42,7 +42,7 @@ spec:
       volumes:
         - name: ca-certs-debian
           configMap:
-              name: tproxy-mitmproxy-root-certs
-              items:
-                - key: root-certs.crt
-                  path: ca-certificates.crt
+            name: tproxy-tproxy-root-certs
+            items:
+              - key: root-certs.crt
+                path: ca-certificates.crt
