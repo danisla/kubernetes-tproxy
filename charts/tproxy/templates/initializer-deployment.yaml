@@ -31,7 +31,7 @@ spec:
             - "-annotation=initializer.kubernetes.io/tproxy"
             - "-require-annotation=true"
             - "-namespace=kube-system"
-            - "-configmap={{ template "tproxy.fullname" . }}-initializer-config"
+            - "-configmap={{ template "tproxy.fullname" . }}-initializer"
           resources:
             limits:
               cpu: 500m

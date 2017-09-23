@@ -46,7 +46,7 @@ rules:
 - apiGroups: [""] # "" indicates the core API group
   resources: ["configmaps"]
   resourceNames:
-  - {{ template "tproxy.fullname" . }}-initializer-config
+  - {{ template "tproxy.fullname" . }}-initializer
   verbs: ["get", "list"]
 - apiGroups: ["extensions", "apps"]
   resources: ["deployments"]
