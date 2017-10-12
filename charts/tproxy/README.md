@@ -64,6 +64,8 @@ The following table lists the configurable parameters for the chart and their de
 | `tproxy.hostPort`                    | The port claimed on each host node that mitmproxy binds to               | `8080`                                     |
 | `tproxy.addStandardModeProxy`        | Set to `true` to install a second mitmproxy instance on port `1080` that can be used as a normal proxy | `false`      |
 | `tproxy.resources`                   | Resources allocated to the mitmproxy containers                          | `limit=500m,256Mi, request=100m,128Mi`     |
+| `tproxy.blockSvcCIDR`                | Additional CIDR range to block access to, use the service CIDR of your cluster. |                                     |
+| `tproxy.allowDNS`                    | Cluster DNS IP to allow, useful in combination with `blockSvcCIDR`       |                                            |
 
 ## Customizing the mitmproxy script
 
