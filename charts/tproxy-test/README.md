@@ -18,16 +18,18 @@ Runs a job on each of the nodes to verify tproxy is providing proper isolation.
         
         helm install --namespace tproxy-test -n tproxy --set tproxy.useRBAC=true ../tproxy
 
-4. Install tproxy-test chart:
+4. Get cluster info:
 
         CLUSTER=dev
         SVC_CIDR=$(gcloud container clusters describe $CLUSTER --zone us-central1-c --format='value(servicesIpv4Cidr)')
         DNS_IP=$(kubectl get svc kube-dns -n kube-system -o jsonpath="{.spec.clusterIP}")
         NUM_NODES=$(gcloud container clusters describe $CLUSTER --zone us-central1-c --format='value(currentNodeCount)')
 
+5. Install tproxy-test chart:
+        
         helm install --namespace tproxy-test --name tproxy-test --set blockSvcCIDR=${SVC_CIDR},allowDNS=${DNS_IP},numNodes=${NUM_NODES} .
 
-5. Get the logs for the test job:
+6. Get the logs for the test job:
 
         kubectl logs --namespace tproxy-test job/tproxy-test-tproxy-test
 
@@ -41,10 +43,14 @@ Runs a job on each of the nodes to verify tproxy is providing proper isolation.
         PASS:  Ping operation should not be permitted.
         INFO:  All tests passed
 
-6. Delete the release:
+7. Delete the tprox-test release:
 
         helm delete --purge tproxy-test
 
-7. Delete the namespace:
+8. Delete the namespace:
 
         kubectl delete namespace tproxy-test
+
+9. Delete the tproxy release:
+
+        helm delete --purge tproxy
