@@ -1,0 +1,132 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ template "tproxy-test.fullname" . }}
+  labels:
+    app: {{ template "tproxy-test.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  activeDeadlineSeconds: 30
+  parallelism: {{ required "missing required value numNodes" .Values.numNodes }}
+  completions: {{ .Values.numNodes }}
+  template:
+    metadata:
+      name: tproxy-test
+      labels:
+        app: {{ template "tproxy-test.name" . }}
+        release: {{ .Release.Name }}
+      annotations:
+        "initializer.kubernetes.io/tproxy": "true"
+    spec:
+      serviceAccountName: {{ template "tproxy-test.fullname" . }}
+      automountServiceAccountToken: false
+      restartPolicy: OnFailure
+      terminationGracePeriodSeconds: 0
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: "kubernetes.io/hostname"
+            labelSelector:
+              matchLabels:
+                app:  {{ template "tproxy-test.name" . }}
+                release: {{ .Release.Name }}
+      initContainers:
+      - name: tproxy
+        image: docker.io/danisla/tproxy-sidecar:0.1.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: true
+        env:
+        - name: BLOCK_SVC_CIDR
+          value: {{ required "missing required value blockSvcCIDR" .Values.blockSvcCIDR }}
+        - name: ALLOW_DNS
+          value: {{ required "missing required value allowDNS" .Values.allowDNS }}
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+      containers:
+      - name: tproxy-test
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        volumeMounts:
+        - name: ca-certs-debian
+          mountPath: /etc/ssl/certs/
+        - name: ca-certs-debian
+          # Adding the cert to the /extra dir preserves it if update-ca-certificates is run after init.
+          mountPath: /usr/local/share/ca-certificates/extra/
+        command:
+        - "/bin/bash"
+        args:
+        - "-c"
+        - |
+          function checkURLStatusCode() {
+            STATUS=$1
+            URL=$2
+            ARGS=$3
+            RES=$(curl -s -o /dev/null -w '%{http_code}' ${ARGS} "${URL}")
+            [[ ${RES} == ${STATUS} ]]
+          }
+
+          function testRes() {
+            RES=$1
+            MSG=$2
+            
+            T=PASS; [[ $RES -ne 0 ]] && T=FAIL
+            echo "${T}:  ${MSG}"
+
+            [[ "${T}" != "PASS" ]]
+          }
+
+          PASSED=true
+
+          # Allowed egress https
+          checkURLStatusCode 200 https://storage.googleapis.com/solutions-public-assets/adtech/dfp_networkimpressions.py
+          testRes $? "Egress to allowed https should return status 200 (https://storage.googleapis.com/solutions-public-assets/)." || PASSED=false
+
+          # Blocked egress
+          checkURLStatusCode 418 https://www.google.com
+          testRes $? "Egress to external https should return status 418 (https://www.google.com)." || PASSED=false
+
+          # GCE Metadata server
+          checkURLStatusCode 418 http://metadata.google.internal
+          testRes $? "GCE metadata server should return status 418 (http://metadata.google.internal)." || PASSED=false
+
+          # K8S cluster service
+          nc -vz -w1 kubernetes-dashboard.kube-system.svc.cluster.local 80 2>&1 | grep -q "timed out"
+          testRes $? "K8S Cluster service should time out (kubernetes-dashboard.kube-system.svc.cluster.local)." || PASSED=false
+
+          # K8S API token test
+          test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
+          testRes $? "K8S API token from service account should not exist." || PASSED=false
+
+          # Ping test
+          ping -c1 www.google.com 2>&1 | grep -q "Operation not permitted"
+          testRes $? "Ping operation should not be permitted." || PASSED=false
+
+          if [[ $PASSED ]]; then
+            echo "INFO:  All tests passed"
+          else
+            echo "ERROR: At least one test failed."
+          fi
+
+          [[ $PASSED ]]
+
+        resources:
+{{ toYaml .Values.resources | indent 12 }}
+    {{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+    {{- end }}
+      volumes:
+      - name: ca-certs-debian
+        configMap:
+          name: tproxy-tproxy-root-certs
+          items:
+          - key: root-certs.crt
+            path: ca-certificates.crt

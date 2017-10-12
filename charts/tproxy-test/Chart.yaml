@@ -1,0 +1,4 @@
+apiVersion: v1
+description: A Helm chart to test pod level K8S isolation with tproxy
+name: tproxy-test
+version: 0.1.0

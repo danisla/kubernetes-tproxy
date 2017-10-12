@@ -1,0 +1,3 @@
+1. Get the logs for the job:
+
+   kubectl logs --namespace {{ .Release.Namespace }} job/{{ template "tproxy-test.fullname" . }}
