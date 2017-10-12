@@ -38,9 +38,9 @@ Runs a job on each of the nodes to verify tproxy is providing proper isolation.
         PASS:  Egress to allowed https should return status 200 (https://storage.googleapis.com/solutions-public-assets/)
         PASS:  Egress to external https should return status 418 (https://www.google.com).
         PASS:  GCE metadata server should return status 418 (http://metadata.google.internal).
-        PASS:  K8S Cluster service should time out (kubernetes-dashboard.kube-system.svc.cluster.local).
+        PASS:  K8S cluster service should time out (kubernetes-dashboard.kube-system.svc.cluster.local).
         PASS:  K8S API token from service account should not exist.
-        PASS:  Ping operation should not be permitted.
+        PASS:  ICMP (ping) operation should not be permitted.
         INFO:  All tests passed
 
 7. Delete the tprox-test release:

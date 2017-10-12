@@ -99,7 +99,7 @@ spec:
 
           # K8S cluster service
           nc -vz -w1 kubernetes-dashboard.kube-system.svc.cluster.local 80 2>&1 | grep -q "timed out"
-          testRes $? "K8S Cluster service should time out (kubernetes-dashboard.kube-system.svc.cluster.local)." || PASSED=false
+          testRes $? "K8S cluster service should time out (kubernetes-dashboard.kube-system.svc.cluster.local)." || PASSED=false
 
           # K8S API token test
           test ! -e /var/run/secrets/kubernetes.io/serviceaccount/token
@@ -107,7 +107,7 @@ spec:
 
           # Ping test
           ping -c1 www.google.com 2>&1 | grep -q "Operation not permitted"
-          testRes $? "Ping operation should not be permitted." || PASSED=false
+          testRes $? "ICMP (ping) operation should not be permitted." || PASSED=false
 
           if [[ $PASSED ]]; then
             echo "INFO:  All tests passed"
