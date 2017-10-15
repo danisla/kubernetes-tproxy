@@ -21,9 +21,10 @@ Runs a job on each of the nodes to verify tproxy is providing proper isolation.
 4. Get cluster info:
 
         CLUSTER=dev
-        SVC_CIDR=$(gcloud container clusters describe $CLUSTER --zone us-central1-c --format='value(servicesIpv4Cidr)')
+        ZONE=us-central1-a
+        SVC_CIDR=$(gcloud container clusters describe $CLUSTER --zone ${ZONE} --format='value(servicesIpv4Cidr)')
         DNS_IP=$(kubectl get svc kube-dns -n kube-system -o jsonpath="{.spec.clusterIP}")
-        NUM_NODES=$(gcloud container clusters describe $CLUSTER --zone us-central1-c --format='value(currentNodeCount)')
+        NUM_NODES=$(gcloud container clusters describe $CLUSTER --zone ${ZONE} --format='value(currentNodeCount)')
 
 5. Install tproxy-test chart:
         
@@ -47,10 +48,10 @@ Runs a job on each of the nodes to verify tproxy is providing proper isolation.
 
         helm delete --purge tproxy-test
 
-8. Delete the namespace:
-
-        kubectl delete namespace tproxy-test
-
-9. Delete the tproxy release:
+8. Delete the tproxy release:
 
         helm delete --purge tproxy
+
+9. Delete the namespace:
+
+        kubectl delete namespace tproxy-test
