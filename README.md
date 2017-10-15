@@ -81,7 +81,7 @@ gcloud container clusters create tproxy-example \
 2. Install Helm:
 
 ```sh
-curl -sL https://storage.googleapis.com/kubernetes-helm/helm-v2.5.1-linux-amd64.tar.gz | tar -xvf - && sudo mv linux-amd64/helm /usr/local/bin/ && rm -Rf linux-amd64
+curl -sL https://storage.googleapis.com/kubernetes-helm/helm-v2.5.1-linux-amd64.tar.gz | tar -zxvf - && sudo mv linux-amd64/helm /usr/local/bin/ && rm -Rf linux-amd64
 
 helm init
 ```
